@@ -141,14 +141,9 @@ public class BubbleService extends Service {
     }
 
     private void createBubbleView() {
-        Log.d(TAG, "createBubbleView: Creating bubble view");
-        
         try {
-            // Inflate the bubble layout
-            LayoutInflater inflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
-            bubbleView = inflater.inflate(R.layout.bubble_layout, null);
+            bubbleView = LayoutInflater.from(this).inflate(R.layout.bubble_layout, null);
             
-            // Paramètres pour la bulle
             WindowManager.LayoutParams params = new WindowManager.LayoutParams(
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 WindowManager.LayoutParams.WRAP_CONTENT,
@@ -158,10 +153,9 @@ public class BubbleService extends Service {
             );
             
             params.gravity = Gravity.TOP | Gravity.START;
-            params.x = 0;
+            params.x = 100;
             params.y = 100;
-            
-            // Configurer le touch listener sur la bulle
+
             bubbleView.setOnTouchListener(new View.OnTouchListener() {
                 private int initialX;
                 private int initialY;
@@ -213,10 +207,7 @@ public class BubbleService extends Service {
                 }
             });
             
-            // Ajouter la vue
             windowManager.addView(bubbleView, params);
-            Log.d(TAG, "createBubbleView: Bubble view created successfully");
-            showToast("Bulle créée");
             
         } catch (Exception e) {
             Log.e(TAG, "createBubbleView: Error", e);
@@ -226,12 +217,10 @@ public class BubbleService extends Service {
 
     private void createOverlayView() {
         try {
-            // Inflate the overlay layout
             LayoutInflater inflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
             overlayView = inflater.inflate(R.layout.overlay_layout, null);
             overlayText = overlayView.findViewById(R.id.overlay_text);
             
-            // Paramètres pour l'overlay
             WindowManager.LayoutParams params = new WindowManager.LayoutParams(
                 WindowManager.LayoutParams.MATCH_PARENT,
                 WindowManager.LayoutParams.WRAP_CONTENT,
@@ -244,7 +233,6 @@ public class BubbleService extends Service {
             
             params.gravity = Gravity.CENTER;
             
-            // Ajouter la vue
             windowManager.addView(overlayView, params);
             overlayView.setVisibility(View.GONE);
             
@@ -266,7 +254,6 @@ public class BubbleService extends Service {
                 return;
             }
 
-            // Enregistrer le callback AVANT de créer le display
             mediaProjection.registerCallback(new MediaProjection.Callback() {
                 @Override
                 public void onStop() {
@@ -277,7 +264,6 @@ public class BubbleService extends Service {
                 }
             }, handler);
 
-            // Configurer la capture d'écran
             DisplayMetrics metrics = getResources().getDisplayMetrics();
             int screenWidth = metrics.widthPixels;
             int screenHeight = metrics.heightPixels;
@@ -330,7 +316,6 @@ public class BubbleService extends Service {
 
     private void captureAndTranslate() {
         if (isProcessingImage) {
-            // Si le traitement prend trop de temps, on force la réinitialisation
             long currentTime = System.currentTimeMillis();
             if (lastProcessingTime > 0 && currentTime - lastProcessingTime > 5000) {
                 Log.d(TAG, "captureAndTranslate: Forcing reset of processing flag");
@@ -351,7 +336,6 @@ public class BubbleService extends Service {
         isProcessingImage = true;
         lastProcessingTime = System.currentTimeMillis();
         
-        // Attendre un peu pour laisser le temps à l'image d'être disponible
         handler.postDelayed(() -> {
             try {
                 Image image = imageReader.acquireLatestImage();
@@ -363,7 +347,6 @@ public class BubbleService extends Service {
                     return;
                 }
 
-                // Convertir l'image en bitmap
                 Bitmap originalBitmap = imageToBitmap(image);
                 image.close();
 
@@ -375,7 +358,6 @@ public class BubbleService extends Service {
                     return;
                 }
 
-                // Traiter l'image
                 processImage(originalBitmap);
                 
             } catch (Exception e) {
@@ -488,7 +470,6 @@ public class BubbleService extends Service {
                         windowManager.addView(translationView, params);
                         Log.d(TAG, "translateTextBlock: Added translation view at position: " + params.x + ", " + params.y);
                         
-                        // Remove the translation after 5 seconds
                         handler.postDelayed(() -> {
                             try {
                                 windowManager.removeView(translationView);
