@@ -26,13 +26,17 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.View.OnTouchListener;
 import android.view.WindowManager;
+import android.view.animation.AccelerateInterpolator;
+import android.view.animation.DecelerateInterpolator;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
+import androidx.core.content.ContextCompat;
 
 import com.google.mlkit.common.model.DownloadConditions;
 import com.google.mlkit.common.model.RemoteModelManager;
@@ -156,7 +160,7 @@ public class BubbleService extends Service {
             params.x = 100;
             params.y = 100;
 
-            bubbleView.setOnTouchListener(new View.OnTouchListener() {
+            bubbleView.setOnTouchListener(new OnTouchListener() {
                 private int initialX;
                 private int initialY;
                 private float initialTouchX;
@@ -437,7 +441,7 @@ public class BubbleService extends Service {
     private void translateTextBlock(String text, Rect blockRect) {
         if (translator == null) {
             Log.e(TAG, "translateTextBlock: Translator is null");
-            setupTranslator("en");  // On essaie de réinitialiser le traducteur
+            setupTranslator("en");
             return;
         }
 
@@ -449,9 +453,17 @@ public class BubbleService extends Service {
                     TextView translationView = new TextView(this);
                     translationView.setText(translatedText);
                     translationView.setTextColor(Color.WHITE);
-                    translationView.setBackgroundColor(Color.argb(180, 0, 0, 0));
-                    translationView.setPadding(10, 5, 10, 5);
-                    translationView.setTextSize(16); // Ajout d'une taille de texte plus grande
+                    translationView.setBackground(ContextCompat.getDrawable(this, R.drawable.modern_translation_background));
+                    translationView.setPadding(24, 12, 24, 12);
+                    translationView.setTextSize(16);
+                    translationView.setElevation(8f);
+                    translationView.setAlpha(0f);
+                    
+                    // Ajout d'une ombre portée
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                        translationView.setOutlineAmbientShadowColor(Color.BLACK);
+                        translationView.setOutlineSpotShadowColor(Color.BLACK);
+                    }
 
                     WindowManager.LayoutParams params = new WindowManager.LayoutParams(
                         WindowManager.LayoutParams.WRAP_CONTENT,
@@ -464,18 +476,37 @@ public class BubbleService extends Service {
 
                     params.gravity = Gravity.TOP | Gravity.START;
                     params.x = blockRect.left;
-                    params.y = blockRect.top;
+                    params.y = blockRect.top - 10; // Légèrement au-dessus du texte original
 
                     try {
                         windowManager.addView(translationView, params);
                         Log.d(TAG, "translateTextBlock: Added translation view at position: " + params.x + ", " + params.y);
                         
+                        // Animation d'apparition
+                        translationView.animate()
+                            .alpha(1f)
+                            .setDuration(200)
+                            .setInterpolator(new DecelerateInterpolator())
+                            .start();
+
+                        // Animation de disparition et suppression après 5 secondes
                         handler.postDelayed(() -> {
                             try {
-                                windowManager.removeView(translationView);
-                                Log.d(TAG, "translateTextBlock: Removed translation view");
+                                translationView.animate()
+                                    .alpha(0f)
+                                    .setDuration(200)
+                                    .setInterpolator(new AccelerateInterpolator())
+                                    .withEndAction(() -> {
+                                        try {
+                                            windowManager.removeView(translationView);
+                                            Log.d(TAG, "translateTextBlock: Removed translation view");
+                                        } catch (Exception e) {
+                                            Log.e(TAG, "Error removing translation view", e);
+                                        }
+                                    })
+                                    .start();
                             } catch (Exception e) {
-                                Log.e(TAG, "Error removing translation view", e);
+                                Log.e(TAG, "Error animating translation view", e);
                             }
                         }, 5000);
                     } catch (Exception e) {
