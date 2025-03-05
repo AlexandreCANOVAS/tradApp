@@ -1,21 +1,32 @@
 package com.translator;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.Context;
 import android.content.Intent;
 import android.media.projection.MediaProjectionManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.util.Log;
+import android.view.View;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.Spinner;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
     private static final int REQUEST_CODE_SCREEN_CAPTURE = 100;
     private static final int REQUEST_CODE_OVERLAY_PERMISSION = 101;
-    
+    private static final int REQUEST_CODE_LANGUAGE_SELECTOR = 102;
     private MediaProjectionManager projectionManager;
+    private String selectedLanguage = "en";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,8 +46,48 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         
-        // Si on a déjà la permission d'overlay, on demande la capture d'écran
-        startScreenCapture();
+        // Si on a déjà la permission d'overlay, on affiche le sélecteur de langue
+        showLanguageSelector();
+    }
+
+    private void showLanguageSelector() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        View view = getLayoutInflater().inflate(R.layout.language_selector, null);
+        
+        Spinner spinner = view.findViewById(R.id.language_spinner);
+        Button confirmButton = view.findViewById(R.id.confirm_button);
+
+        // Préparer la liste des langues
+        Map<String, String> languages = new LinkedHashMap<>();
+        languages.put("fr", "Français");
+        languages.put("en", "Anglais");
+        languages.put("es", "Espagnol");
+        languages.put("de", "Allemand");
+        languages.put("it", "Italien");
+        languages.put("pt", "Portugais");
+        languages.put("ru", "Russe");
+        languages.put("ja", "Japonais");
+        languages.put("ko", "Coréen");
+        languages.put("zh", "Chinois");
+
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+            this, 
+            android.R.layout.simple_spinner_item, 
+            new ArrayList<>(languages.values())
+        );
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner.setAdapter(adapter);
+
+        AlertDialog dialog = builder.setView(view).setCancelable(false).create();
+
+        confirmButton.setOnClickListener(v -> {
+            int position = spinner.getSelectedItemPosition();
+            selectedLanguage = new ArrayList<>(languages.keySet()).get(position);
+            dialog.dismiss();
+            startScreenCapture();
+        });
+
+        dialog.show();
     }
 
     private void startScreenCapture() {
@@ -66,7 +117,7 @@ public class MainActivity extends AppCompatActivity {
         if (requestCode == REQUEST_CODE_OVERLAY_PERMISSION) {
             if (Settings.canDrawOverlays(this)) {
                 Log.d(TAG, "onActivityResult: Overlay permission granted");
-                startScreenCapture();
+                showLanguageSelector();
             } else {
                 Log.e(TAG, "onActivityResult: Overlay permission denied");
                 showError("Permission d'affichage nécessaire");
@@ -93,6 +144,7 @@ public class MainActivity extends AppCompatActivity {
             Intent serviceIntent = new Intent(this, BubbleService.class);
             serviceIntent.putExtra("result_code", resultCode);
             serviceIntent.putExtra("projection_data", data);
+            serviceIntent.putExtra("target_language", selectedLanguage);
             
             Log.d(TAG, "startBubbleService: Starting foreground service");
             startForegroundService(serviceIntent);
