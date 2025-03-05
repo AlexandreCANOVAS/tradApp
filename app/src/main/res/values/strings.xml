@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Traducteur Live</string>
+    <string name="select_language">Sélectionnez la langue cible</string>
+    <string name="start_translation">Démarrer la traduction</string>
+    <string name="permission_denied">Permission de capture d\'écran refusée</string>
+    <string name="service_notification_title">Service de traduction</string>
+    <string name="service_notification_text">Service actif</string>
+</resources>
